@@ -3,8 +3,8 @@
 #include <fstream>
 #include <vector>
 #include <unistd.h>
-#define USAGE "rpf [-1][-2][-3][-4][-5] [FILE]"
-#define VEC_BUF_SIZE 4096
+#define USAGE "rpf [-1][-2][-3][-4][-5][-6] [FILE]"
+#define VEC_BUF_SIZE 1048576 // 1 MiB
 
 void PrintFile(const std::filesystem::path &path) {
 
@@ -20,12 +20,12 @@ void PrintFile(const std::filesystem::path &path) {
 	std::string data(size, '\0'); // make string of appropriate size
 	thisfile.seekg(0, std::ios::beg); // seek to beginning of file
 	thisfile.read(&data[0], size); // read entire file in to string
-	std::cout << data;
+	std::cout.write(&data[0], size);
 	std::cout << "File size: " << size << std::endl;
 	thisfile.close();
 }
 
-void PrintFileBUFFERED_SINGLE_CHAR(const std::filesystem::path &path) {
+void PrintFileBUFFERED_SINGLE_CHAR(const std::filesystem::path &path) { // extremely slow
 
 	std::ifstream thisfile;
 	thisfile.open(path);
@@ -96,6 +96,28 @@ void PrintFileBUFFERED_READ_ARRAY(const std::filesystem::path &path) {
 	thisfile.close();
 }
 
+void PrintFileBUFFERED_READ_STRING(const std::filesystem::path &path) {
+
+	std::ifstream thisfile;
+	thisfile.open(path);
+	if(!thisfile.is_open()) {
+		std::cout << "Cannot open file" << std::endl;
+		return;
+	}
+
+	thisfile.seekg(0, std::ios::end); // seek to end
+	auto size = thisfile.tellg(); // get size
+	thisfile.seekg(0, std::ios::beg); // seek to beginning of file
+	while (!thisfile.eof()) {
+		std::string strbuf(VEC_BUF_SIZE, '\0');
+		thisfile.read(&strbuf[0], VEC_BUF_SIZE);
+		std::cout.write(&strbuf[0], thisfile.gcount());
+	}
+	
+	std::cout << "File size: " << size << std::endl;
+	thisfile.close();
+}
+
 void NCAT(const std::filesystem::path &path) {
 
     FILE *file;
@@ -136,7 +158,8 @@ int main (int argc, char **argv) {
 	int three = 0;
 	int four = 0;
 	int five = 0;
-    while ((opt = getopt(argc, argv, "12345")) != -1) {
+	int six = 0;
+    while ((opt = getopt(argc, argv, "123456")) != -1) {
         switch (opt) {
         case '1':
 
@@ -163,10 +186,15 @@ int main (int argc, char **argv) {
 			five = 1;
 			
 			break;
+		case '6':
+			
+			six = 1;
+			
+			break;
 		}
 	}
 
-	if((one + two + three + four + five) > 1) {
+	if((one + two + three + four + five + six) > 1) {
 		usageOUT();
 		return EXIT_FAILURE;
 	}
@@ -200,6 +228,11 @@ int main (int argc, char **argv) {
 	if(five == 1) {
 		NCAT(path);
 		std::cout << "NCAT" << std::endl;
+	}
+
+	if(six == 1) {
+		PrintFileBUFFERED_READ_STRING(path);
+		std::cout << "PrintFileBRS" << std::endl;
 	}
 	
 	return EXIT_SUCCESS;
