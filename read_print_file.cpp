@@ -4,8 +4,28 @@
 #include <vector>
 #include <unistd.h>
 #include <fcntl.h>
-#define USAGE "rpf [-1][-2][-3][-4][-5][-6] [FILE]"
+#define USAGE "rpf [-1][-2][-3][-4][-5][-6][-7] [FILE]"
 #define VEC_BUF_SIZE 1048576 // 1 MiB
+
+void PrintFileReserve(const std::filesystem::path &path) {
+	
+	std::ifstream thisfile;
+	thisfile.open(path);
+	if(!thisfile.is_open()) {
+		std::cout << "Cannot open file" << std::endl;
+		return;
+	}
+
+	thisfile.seekg(0, std::ios::end); // seek to end
+	auto size = thisfile.tellg(); // get size
+	std::string data(size, '\0'); // make string of appropriate size
+	data.reserve(141557760);
+	thisfile.seekg(0, std::ios::beg); // seek to beginning of file
+	thisfile.read(&data[0], size); // read entire file in to string
+	std::cout.write(&data[0], size);
+	std::cout << "File size: " << size << std::endl;
+	thisfile.close();
+}
 
 void PrintFile(const std::filesystem::path &path) {
 
@@ -134,7 +154,7 @@ void ncat(const std::filesystem::path &path) {
 	fseek(file, 0, SEEK_SET);
     char buffer[VEC_BUF_SIZE];
     size_t bytes_read;
-    while ((bytes_read = fread(buffer, 1, VEC_BUF_SIZE, file)) > 0) {
+    while ((bytes_read = fread(buffer, sizeof(char), VEC_BUF_SIZE, file)) > 0) {
         fwrite(buffer, 1, bytes_read, stdout);
     }
 
@@ -183,7 +203,8 @@ int main (int argc, char **argv) {
 	int five = 0;
 	int six = 0;
 	int seven = 0;
-    while ((opt = getopt(argc, argv, "1234567")) != -1) {
+	int eight = 0;
+    while ((opt = getopt(argc, argv, "12345678")) != -1) {
         switch (opt) {
         case '1':
 
@@ -220,10 +241,15 @@ int main (int argc, char **argv) {
 			seven = 1;
 
 			break;
+		case '8':
+
+			eight = 1;
+			
+			break;
 		}
 	}
 
-	if((one + two + three + four + five + six + seven) > 1) {
+	if((one + two + three + four + five + six + seven + eight) > 1) {
 		usageOUT();
 		return EXIT_FAILURE;
 	}
@@ -269,5 +295,10 @@ int main (int argc, char **argv) {
 		std::cout << "NCAT_WRITE" << std::endl;
 	}
 
+	if(eight == 1) {
+	    PrintFileReserve(path);
+		std::cout << "PrintFileReserve" << std::endl;
+	}
+	
 	return EXIT_SUCCESS;
 }
